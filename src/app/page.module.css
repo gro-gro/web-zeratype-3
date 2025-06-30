@@ -1,4 +1,18 @@
 .main{
     display: flex;
     height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .main {
+        height: 100vh;
+        width: 100vw;
+        /* Ensure proper mobile viewport handling */
+        position: fixed;
+        top: 0;
+        left: 0;
+    }
 }

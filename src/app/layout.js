@@ -1,4 +1,5 @@
 import './globals.css'
+import Navbar from '../components/Navbar'
 
 export const metadata = {
   title: 'Create Next App',
@@ -8,7 +9,20 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+      </head>
+      <body>
+        <Navbar />
+        <div className="gradient-container">
+          <div className="gradient-top" />
+          <div className="gradient-bottom" />
+          {children}
+          <a href="/" className="footer-logo-link">
+            <img src="/medias/hechoEnZeratype.svg" alt="Hecho con Zeratype" className="footer-logo" />
+          </a>
+        </div>
+      </body>
     </html>
   )
 }

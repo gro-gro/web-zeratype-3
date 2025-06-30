@@ -1,5 +1,5 @@
 {
-  "name": "3d-floating-shapes",
+  "name": "web-zeratype-3",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -15,7 +15,8 @@
     "framer-motion-3d": "^10.16.4",
     "next": "13.5.4",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "sass": "^1.89.2"
   },
   "devDependencies": {
     "eslint": "^8",
