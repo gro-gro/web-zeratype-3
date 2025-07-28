@@ -14,13 +14,12 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <Navbar />
-        <div className="gradient-container">
-          <div className="gradient-top" />
-          <div className="gradient-bottom" />
-          {children}
-          <a href="/" className="footer-logo-link">
-            <img src="/medias/hechoEnZeratype.svg" alt="Hecho con Zeratype" className="footer-logo" />
-          </a>
+        {children}
+        <div className="background-elements">
+          <img src="/medias/hechoEnZeratype.svg" alt="Hecho en Zeratype" className="hecho-en-zeratype" />
+          <p className="zeratype-quote">
+            En Zeratype <strong>conectamos</strong> marcas, creadores y audiencias para construir comunidades auténticas y conversaciones relevantes.
+          </p>
         </div>
       </body>
     </html>

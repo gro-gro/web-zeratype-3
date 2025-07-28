@@ -1,16 +1,19 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useGLTF, Float } from "@react-three/drei";
 import { useLoader } from '@react-three/fiber';
-import { TextureLoader } from 'three';
+import { TextureLoader, MeshBasicMaterial } from 'three';
 import { useTransform } from 'framer-motion';
 import { motion } from 'framer-motion-3d';
 
 export default function Model({mouse, viewport, cameraZoom}) {
   const [activeShape, setActiveShape] = useState(1);
 
+  // Props globales para Float
+  const floatProps = { floatIntensity: 2, speed: 1, rotationIntensity: 0.1 };
+
   useEffect( () => {
     setTimeout( () => {
-      if(activeShape == 12){
+      if(activeShape == 11){
         setActiveShape(1)
       }
       else{
@@ -21,6 +24,13 @@ export default function Model({mouse, viewport, cameraZoom}) {
 
   const { nodes } = useGLTF("/medias/proyectos.glb");
   
+  // DEBUG: Mostrar los nombres de los nodos cargados
+  useEffect(() => {
+    if (nodes) {
+      console.log('NODOS GLTF:', Object.keys(nodes));
+    }
+  }, [nodes]);
+
   // Load the diffuse texture for CeroMiligramos
   const ceroMiligramosTexture = useLoader(TextureLoader, '/textures/0MG_Textura.png');
 
@@ -36,13 +46,17 @@ export default function Model({mouse, viewport, cameraZoom}) {
     nodes.PausaActiva,
     nodes.Rufian,
     nodes.Sobremesa,
-    nodes.ValenYSofi,
-    nodes.Zeratype
+    nodes.Zeratype,
+    nodes.Mascara,
+    // Agrupamos Microfono y MicFiltro en un solo nodo visual
+    nodes.Microfono && nodes.MicFiltro ? { microfono: nodes.Microfono, micfiltro: nodes.MicFiltro } : nodes.Microfono,
+    // Agrupamos Camara y Lente en un solo nodo visual
+    nodes.Camara && nodes.Lente ? { camara: nodes.Camara, lente: nodes.Lente } : nodes.Camara,
   ].filter(Boolean), [nodes]);
 
-  // Calculate bounding box for X and Y (excluding Zeratype and undefined)
+  // Calculate bounding box for X and Y (excluding Zeratype, undefined y grupos)
   const meshNodesWithoutZeratype = useMemo(
-    () => meshNodes.filter(n => n && n !== nodes.Zeratype),
+    () => meshNodes.filter(n => n && n !== nodes.Zeratype && n.position),
     [meshNodes, nodes]
   );
   const bounds = useMemo(() => {
@@ -90,15 +104,15 @@ export default function Model({mouse, viewport, cameraZoom}) {
     let xArea, yArea, portrait;
     let marginX, marginY;
     if (aspectRatio > 1) {
-      // Landscape: both margins 10%
-      marginX = 0.1;
-      marginY = 0.1;
+      // Landscape: reduced margins for better distribution
+      marginX = 0.2;
+      marginY = 0.15;
       xArea = 200 * (1 - 2 * marginX) * aspectRatio * responsiveScale;
       yArea = 200 * (1 - 2 * marginY) * responsiveScale;
       portrait = false;
     } else {
-      // Portrait: horizontal margin 10%, vertical margin 5%
-      marginX = 0.3;
+      // Portrait: reduced margins for better distribution
+      marginX = 0.25;
       marginY = 0.2;
       xArea = 200 * (1 - 2 * marginX) * responsiveScale;
       yArea = 200 * (1 - 2 * marginY) / aspectRatio * responsiveScale;
@@ -111,7 +125,37 @@ export default function Model({mouse, viewport, cameraZoom}) {
     <group>
       {/* Render all except Zeratype as interactive */}
       {meshNodes.filter(n => n !== nodes.Zeratype).map((node, i) => (
-        node === nodes.CeroMiligramos ? (
+        // Si es el grupo Microfono+MicFiltro
+        node.microfono && node.micfiltro ? (
+          <GroupMicrofonoMicFiltro
+            key={"microfono-micfiltro"}
+            microfono={node.microfono}
+            micfiltro={node.micfiltro}
+            multiplier={1.5}
+            mouse={mouse}
+            isActive={activeShape === i + 1}
+            responsiveScale={responsiveScale}
+            viewport={viewport}
+            bounds={bounds}
+            availableArea={availableArea}
+            floatProps={floatProps}
+          />
+        ) : // Si es el grupo Camara+Lente
+        node.camara && node.lente ? (
+          <GroupCamaraLente
+            key={"camara-lente"}
+            camara={node.camara}
+            lente={node.lente}
+            multiplier={1.5}
+            mouse={mouse}
+            isActive={activeShape === i + 1}
+            responsiveScale={responsiveScale}
+            viewport={viewport}
+            bounds={bounds}
+            availableArea={availableArea}
+            floatProps={floatProps}
+          />
+        ) : node === nodes.CeroMiligramos ? (
           <Mesh
             key={i}
             node={node}
@@ -123,6 +167,7 @@ export default function Model({mouse, viewport, cameraZoom}) {
             bounds={bounds}
             availableArea={availableArea}
             texture={ceroMiligramosTexture}
+            floatProps={floatProps}
           />
         ) : (
           <Mesh
@@ -145,18 +190,21 @@ export default function Model({mouse, viewport, cameraZoom}) {
             viewport={viewport}
             bounds={bounds}
             availableArea={availableArea}
+            floatProps={floatProps}
           />
         )
       ))}
-      {/* Render Zeratype logo at center, static */}
-      {nodes.Zeratype && <StaticMesh node={nodes.Zeratype} />}
+      {/* Render Zeratype logo at center */}
+      {nodes.Zeratype && (
+        <ZeratypeLogo node={nodes.Zeratype} />
+      )}
     </group>
   );
 }
 
 useGLTF.preload("/medias/proyectos.glb");
 
-function Mesh({node, multiplier, mouse, isActive, responsiveScale, viewport, bounds, availableArea, texture}) {
+function Mesh({node, multiplier, mouse, isActive, responsiveScale, viewport, bounds, availableArea, texture, floatProps}) {
   const { geometry, material, position, scale, rotation } = node;
 
   // Remap X and Y to fill the available area with axis-specific margins
@@ -200,7 +248,7 @@ function Mesh({node, multiplier, mouse, isActive, responsiveScale, viewport, bou
   }
 
   return (
-    <Float>
+    <Float {...floatProps}>
       <motion.mesh
         castShadow={true}
         receiveShadow={true}
@@ -227,18 +275,191 @@ function remap(val, inMin, inMax, outMin, outMax) {
   return ((val - inMin) / (inMax - inMin)) * (outMax - outMin) + outMin;
 }
 
-// Static mesh for Zeratype logo
-function StaticMesh({ node }) {
+// ZeratypeLogo: reacts to mouse for rotation, fixed at [0,0,0], no Float
+function ZeratypeLogo({ node }) {
   const { geometry, material, scale, rotation } = node;
+  
+  // Create completely black material from scratch, ignoring GLTF material
+  const blackMaterial = useMemo(() => {
+    return new MeshBasicMaterial({
+      color: 0x000000,
+    });
+  }, []);
+
+  // Detectar si es móvil (portrait)
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    function checkMobile() {
+      setIsMobile(window.innerHeight > window.innerWidth);
+    }
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    window.addEventListener('orientationchange', checkMobile);
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      window.removeEventListener('orientationchange', checkMobile);
+    };
+  }, []);
+
+  // Escala responsiva: más pequeña en móvil
+  const responsiveScale = useMemo(() => {
+    console.log('ZeratypeLogo - isMobile:', isMobile, 'original scale:', scale);
+    if (isMobile) {
+      const mobileScale = [scale.x * 0.8, scale.y * 0.8, scale.z * 0.8];
+      console.log('ZeratypeLogo - mobile scale:', mobileScale);
+      return mobileScale;
+    }
+    return scale; // Tamaño original en desktop
+  }, [scale, isMobile]);
+  
   return (
     <mesh
-      geometry={geometry}
-      material={material}
-      position={[0, 0, 0]}
-      scale={scale}
-      rotation={rotation}
       castShadow={true}
       receiveShadow={true}
+      geometry={geometry}
+      material={blackMaterial}
+      position={[0, 0, -200]}
+      scale={responsiveScale}
+      rotation={rotation}
     />
+  );
+}
+
+function GroupCamaraLente({ camara, lente, multiplier, mouse, isActive, responsiveScale, viewport, bounds, availableArea, floatProps }) {
+  // Usamos la posición, rotación y escala original de Camara como base del grupo
+  // Lente se posiciona relativa a Camara, igual que en el GLTF
+  // El grupo se comporta igual que los otros nodos
+
+  // Calculamos la posición responsiva para la camara (el grupo)
+  const { position, rotation, scale } = camara;
+  const responsivePosition = React.useMemo(() => {
+    if (!viewport || !responsiveScale || !bounds || !availableArea) return position;
+    let x, y;
+    if (availableArea.portrait) {
+      y = remap(position.y, bounds.minY, bounds.maxY, -availableArea.y / 2, availableArea.y / 2);
+      x = remap(position.x, bounds.minX, bounds.maxX, -availableArea.x / 2, availableArea.x / 2);
+    } else {
+      x = remap(position.x, bounds.minX, bounds.maxX, -availableArea.x / 2, availableArea.x / 2);
+      y = remap(position.y, bounds.minY, bounds.maxY, -availableArea.y / 2, availableArea.y / 2);
+    }
+    return { x, y, z: position.z };
+  }, [position, viewport, responsiveScale, bounds, availableArea]);
+
+  const a = multiplier / 2;
+  const rotationX = useTransform(mouse.x, [0,1], [rotation.x - a, rotation.x + a]);
+  const rotationY = useTransform(mouse.y, [0,1], [rotation.y - a, rotation.y + a]);
+  const responsiveMultiplier = multiplier * responsiveScale;
+  const positionX = useTransform(mouse.x, [0,1], [responsivePosition.x - responsiveMultiplier * 2, responsivePosition.x + responsiveMultiplier * 2]);
+  const positionY = useTransform(mouse.y, [0,1], [responsivePosition.y + responsiveMultiplier * 2, responsivePosition.y - responsiveMultiplier * 2]);
+  const positionZ = responsivePosition.z;
+
+  const getRandomMultiplier = () => {
+    return Math.floor(Math.random() * 2) * (Math.round(Math.random()) ? 1 : -1)
+  }
+
+  return (
+    <Float {...floatProps}>
+      <motion.group
+        position={[0, 0, 0]}
+        rotation={rotation}
+        scale={scale}
+        rotation-y={rotationX}
+        rotation-x={rotationY}
+        position-x={positionX}
+        position-y={positionY}
+        position-z={positionZ}
+        animate={{rotateZ: isActive ? rotation.z + getRandomMultiplier() : null}}
+        transition={{type: "spring", stiffness: 75, damping: 100, mass: 3}}
+      >
+        <mesh
+          castShadow={true}
+          receiveShadow={true}
+          geometry={camara.geometry}
+          material={camara.material}
+          position={[0, 0, 0]}
+          rotation={[0, 0, 0]}
+          scale={[1, 1, 1]}
+        />
+        <mesh
+          castShadow={true}
+          receiveShadow={true}
+          geometry={lente.geometry}
+          material={lente.material}
+          position={lente.position}
+          rotation={lente.rotation}
+          scale={lente.scale}
+        />
+      </motion.group>
+    </Float>
+  );
+}
+
+function GroupMicrofonoMicFiltro({ microfono, micfiltro, multiplier, mouse, isActive, responsiveScale, viewport, bounds, availableArea, floatProps }) {
+  // Usamos la posición, rotación y escala original de Microfono como base del grupo
+  // MicFiltro se posiciona relativa a Microfono, igual que en el GLTF
+  // El grupo se comporta igual que los otros nodos
+
+  // Calculamos la posición responsiva para el microfono (el grupo)
+  const { position, rotation, scale } = microfono;
+  const responsivePosition = React.useMemo(() => {
+    if (!viewport || !responsiveScale || !bounds || !availableArea) return position;
+    let x, y;
+    if (availableArea.portrait) {
+      y = remap(position.y, bounds.minY, bounds.maxY, -availableArea.y / 2, availableArea.y / 2);
+      x = remap(position.x, bounds.minX, bounds.maxX, -availableArea.x / 2, availableArea.x / 2);
+    } else {
+      x = remap(position.x, bounds.minX, bounds.maxX, -availableArea.x / 2, availableArea.x / 2);
+      y = remap(position.y, bounds.minY, bounds.maxY, -availableArea.y / 2, availableArea.y / 2);
+    }
+    return { x, y, z: position.z };
+  }, [position, viewport, responsiveScale, bounds, availableArea]);
+
+  const a = multiplier / 2;
+  const rotationX = useTransform(mouse.x, [0,1], [rotation.x - a, rotation.x + a]);
+  const rotationY = useTransform(mouse.y, [0,1], [rotation.y - a, rotation.y + a]);
+  const responsiveMultiplier = multiplier * responsiveScale;
+  const positionX = useTransform(mouse.x, [0,1], [responsivePosition.x - responsiveMultiplier * 2, responsivePosition.x + responsiveMultiplier * 2]);
+  const positionY = useTransform(mouse.y, [0,1], [responsivePosition.y + responsiveMultiplier * 2, responsivePosition.y - responsiveMultiplier * 2]);
+  const positionZ = responsivePosition.z;
+
+  const getRandomMultiplier = () => {
+    return Math.floor(Math.random() * 2) * (Math.round(Math.random()) ? 1 : -1)
+  }
+
+  return (
+    <Float {...floatProps}>
+      <motion.group
+        position={[0, 0, 0]}
+        rotation={rotation}
+        scale={scale}
+        rotation-y={rotationX}
+        rotation-x={rotationY}
+        position-x={positionX}
+        position-y={positionY}
+        position-z={positionZ}
+        animate={{rotateZ: isActive ? rotation.z + getRandomMultiplier() : null}}
+        transition={{type: "spring", stiffness: 75, damping: 100, mass: 3}}
+      >
+        <mesh
+          castShadow={true}
+          receiveShadow={true}
+          geometry={microfono.geometry}
+          material={microfono.material}
+          position={[0, 0, 0]}
+          rotation={[0, 0, 0]}
+          scale={[1, 1, 1]}
+        />
+        <mesh
+          castShadow={true}
+          receiveShadow={true}
+          geometry={micfiltro.geometry}
+          material={micfiltro.material}
+          position={micfiltro.position}
+          rotation={micfiltro.rotation}
+          scale={micfiltro.scale}
+        />
+      </motion.group>
+    </Float>
   );
 }

@@ -48,19 +48,19 @@ export default function Index() {
         newZoom = 2.5;
       } else {
         // Portrait mobile
-        newZoom = 5;
+        newZoom = 5*1.25;
       }
     } else {
       // Desktop: adjust zoom based on aspect ratio
       if (aspectRatio > 1.5) {
         // Ultra-wide
-        newZoom = 8;
+        newZoom = 8*1.5;
       } else if (aspectRatio > 1.2) {
         // Wide
-        newZoom = 9;
+        newZoom = 9*1.5;
       } else {
         // Standard
-        newZoom = 10;
+        newZoom = 10*1.5;
       }
     }
     
@@ -82,7 +82,7 @@ export default function Index() {
 
   return (
     <Canvas 
-      style={{background: "#e0e0e2"}} 
+      style={{background: "transparent"}} 
       orthographic 
       camera={{position: [0, 0, 200], zoom: cameraZoom}}
     >
