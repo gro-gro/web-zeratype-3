@@ -1,17 +1,18 @@
-html, body {
+html,
+body {
   overflow-x: hidden;
   width: 100%;
 }
 
 @font-face {
-    font-family: 'Main';
-    src: url('/fonts/OTYokai-Extrabold.otf');
+  font-family: 'Main';
+  src: url('/fonts/OTYokai-Extrabold.otf');
 }
 
-body{
-    margin: 0px;
-    font-family: 'Main';
-    background: transparent;
+body {
+  margin: 0px;
+  font-family: 'Main';
+  background: transparent;
 }
 
 .inter-uniquifier {
@@ -23,116 +24,140 @@ body{
 
 /* Background elements behind 3D objects */
 .background-elements {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    pointer-events: none;
-    z-index: -1;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: -1;
 }
 
 .hecho-en-zeratype {
-    width: clamp(200px, 15vw, 600px);
-    height: auto;
-    opacity: 1;
-    /* border: 1px solid red;  Temporary to see if it's rendering */
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: -1;
-    display: none;
+  width: clamp(200px, 15vw, 600px);
+  height: auto;
+  opacity: 1;
+  /* border: 1px solid red;  Temporary to see if it's rendering */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: -1;
+  display: none;
 }
 
 .zeratype-quote {
-    color: #000000;
-    font-family: 'Inter', sans-serif;
-    font-size: clamp(8px, 1.5vw, 10px);
-    font-weight: 400;
-    text-align: center;
-    max-width: 80%;
-    line-height: 1.4;
-    margin: 0;
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: -0;
+  color: #000000;
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(8px, 1.5vw, 10px);
+  font-weight: 400;
+  text-align: center;
+  max-width: 80%;
+  line-height: 1.4;
+  margin: 0;
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: -0;
 }
 
 .zeratype-quote strong {
-    font-weight: 700;
+  font-weight: 700;
 }
 
 /* Navigation Bar Styles */
 .navbar {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
 }
 
 .nav-pill {
-    background: #ffffff;
-    border-radius: 50px;
-    padding: 8px 24px;
-    display: flex;
-    align-items: center;
-    gap: clamp(15px, 3vw, 30px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: #ffffff;
+  border-radius: 50px;
+  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  gap: clamp(15px, 3vw, 30px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .nav-pill a {
-    color: #000000;
-    text-decoration: none;
-    font-size: clamp(10px, 1.8vw, 12px);
-    font-weight: 600;
-    white-space: nowrap;
-    transition: all 0.2s ease;
+  color: #000000;
+  text-decoration: none;
+  font-size: clamp(10px, 1.8vw, 12px);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.2s ease;
 }
 
 .nav-pill a:hover {
-    color: #000000;
-    animation: reduceWeight 300ms steps(3) forwards;
+  color: #000000;
+  animation: reduceWeight 300ms steps(3) forwards;
 }
 
 .nav-pill a:not(:hover) {
-    animation: increaseWeight 300ms steps(3) forwards;
+  animation: increaseWeight 300ms steps(3) forwards;
 }
 
 @keyframes reduceWeight {
-    0% { font-weight: 600; }
-    33% { font-weight: 500; }
-    66% { font-weight: 400; }
-    100% { font-weight: 300; }
+  0% {
+    font-weight: 600;
+  }
+
+  33% {
+    font-weight: 500;
+  }
+
+  66% {
+    font-weight: 400;
+  }
+
+  100% {
+    font-weight: 300;
+  }
 }
 
 @keyframes increaseWeight {
-    0% { font-weight: 300; }
-    33% { font-weight: 400; }
-    66% { font-weight: 500; }
-    100% { font-weight: 600; }
+  0% {
+    font-weight: 300;
+  }
+
+  33% {
+    font-weight: 400;
+  }
+
+  66% {
+    font-weight: 500;
+  }
+
+  100% {
+    font-weight: 600;
+  }
 }
 
-@media screen and (max-width: 768px) {
-    .navbar {
-        top: 15px;
-    }
-    .nav-pill {
-        padding: 6px 16px;
-        gap: 12px;
-    }
-    .nav-pill a {
-        font-size: 9px;
-    }
+@media screen and (max-width: 767px) {
+  .navbar {
+    top: 15px;
+  }
+
+  .nav-pill {
+    padding: 6px 16px;
+    gap: 12px;
+  }
+
+  .nav-pill a {
+    font-size: 9px;
+  }
 }
 
 /* If hechoEnZeratype.svg is used as an <img>, add a class for it: */
 .hecho-en-zeratype {
-    filter: none !important;
-    color: #000000 !important;
+  filter: none !important;
+  color: #000000 !important;
 }
 
 @font-face {
@@ -189,4 +214,3 @@ body{
 }
 
 /* Si querés usar otros pesos de Inter Tight, podés sobreescribir font-weight en la clase o inline */
-

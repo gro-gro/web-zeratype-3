@@ -9,7 +9,8 @@ export default function Navbar() {
   
   React.useEffect(() => {
     function checkOrientation() {
-      setIsPortrait(window.innerHeight > window.innerWidth);
+      // Use consistent breakpoint: mobile if width < 768px
+      setIsPortrait(window.innerWidth < 768);
       setIsInitialized(true);
     }
     checkOrientation();

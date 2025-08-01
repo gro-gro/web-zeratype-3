@@ -16,8 +16,8 @@ export default function Index() {
   }
 
   const smoothMouse = {
-    x: useSpring(mouse.x, {stiffness: 75, damping: 100, mass: 3}),
-    y: useSpring(mouse.y, {stiffness: 75, damping: 100, mass: 3})
+    x: useSpring(mouse.x, { stiffness: 75, damping: 100, mass: 3 }),
+    y: useSpring(mouse.y, { stiffness: 75, damping: 100, mass: 3 })
   }
 
   const manageMouse = e => {
@@ -31,16 +31,16 @@ export default function Index() {
 
   const updateResponsiveSettings = () => {
     const { innerWidth, innerHeight } = window;
-    const isMobileDevice = innerWidth <= 768 || innerHeight <= 768;
+    const isMobileDevice = innerWidth < 768
     setIsMobile(isMobileDevice);
-    
+
     // Update viewport dimensions
     setViewport({ width: innerWidth, height: innerHeight });
-    
+
     // Calculate responsive zoom based on aspect ratio and screen size
     const aspectRatio = innerWidth / innerHeight;
     let newZoom;
-    
+
     if (isMobileDevice) {
       // Mobile: adjust zoom based on aspect ratio
       if (aspectRatio > 1) {
@@ -48,22 +48,22 @@ export default function Index() {
         newZoom = 2.5;
       } else {
         // Portrait mobile
-        newZoom = 5*1.25;
+        newZoom = 5 * 1.25;
       }
     } else {
       // Desktop: adjust zoom based on aspect ratio
       if (aspectRatio > 1.5) {
         // Ultra-wide
-        newZoom = 8*1.5;
+        newZoom = 8 * 1.5;
       } else if (aspectRatio > 1.2) {
         // Wide
-        newZoom = 9*1.5;
+        newZoom = 9 * 1.5;
       } else {
         // Standard
-        newZoom = 10*1.5;
+        newZoom = 10 * 1.5;
       }
     }
-    
+
     setCameraZoom(newZoom);
   }
 
@@ -72,7 +72,7 @@ export default function Index() {
     window.addEventListener("mousemove", manageMouse);
     window.addEventListener("resize", updateResponsiveSettings);
     window.addEventListener("orientationchange", updateResponsiveSettings);
-    
+
     return () => {
       window.removeEventListener("mousemove", manageMouse);
       window.removeEventListener("resize", updateResponsiveSettings);
@@ -81,13 +81,13 @@ export default function Index() {
   }, [])
 
   return (
-    <Canvas 
-      style={{background: "transparent"}} 
-      orthographic 
-      camera={{position: [0, 0, 200], zoom: cameraZoom}}
+    <Canvas
+      style={{ background: "transparent" }}
+      orthographic
+      camera={{ position: [0, 0, 200], zoom: cameraZoom }}
     >
-        <Model mouse={smoothMouse} viewport={viewport} cameraZoom={cameraZoom}/>
-        <Environment preset="studio"/>
+      <Model mouse={smoothMouse} viewport={viewport} cameraZoom={cameraZoom} />
+      <Environment files="\medias\studio_small_03_1k.hdr" />
     </Canvas>
   )
 }

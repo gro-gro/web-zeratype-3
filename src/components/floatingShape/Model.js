@@ -5,25 +5,25 @@ import { TextureLoader, MeshBasicMaterial } from 'three';
 import { useTransform } from 'framer-motion';
 import { motion } from 'framer-motion-3d';
 
-export default function Model({mouse, viewport, cameraZoom}) {
+export default function Model({ mouse, viewport, cameraZoom }) {
   const [activeShape, setActiveShape] = useState(1);
 
   // Props globales para Float
   const floatProps = { floatIntensity: 2, speed: 1, rotationIntensity: 0.1 };
 
-  useEffect( () => {
-    setTimeout( () => {
-      if(activeShape == 11){
+  useEffect(() => {
+    setTimeout(() => {
+      if (activeShape == 11) {
         setActiveShape(1)
       }
-      else{
+      else {
         setActiveShape(activeShape + 1)
       }
     }, 2000)
   }, [activeShape])
 
   const { nodes } = useGLTF("/medias/proyectos.glb");
-  
+
   // DEBUG: Mostrar los nombres de los nodos cargados
   useEffect(() => {
     if (nodes) {
@@ -34,25 +34,79 @@ export default function Model({mouse, viewport, cameraZoom}) {
   // Load the diffuse texture for CeroMiligramos
   const ceroMiligramosTexture = useLoader(TextureLoader, '/textures/0MG_Textura.png');
 
-  // Get all mesh nodes and their original positions, filter out undefined
-  const meshNodes = useMemo(() => [
+  // Define nodes that preserve their fixed positions (never randomized)
+  const fixedNodes = useMemo(() => [
+    nodes.Zeratype,
+    nodes.Meli,
+    nodes.PausaActiva,
+    nodes.ElSueno,
+    nodes.Sobremesa,
+  ].filter(Boolean), [nodes]);
+
+  // Define nodes that can be randomized (excluding fixed nodes)
+  const randomizableNodes = useMemo(() => [
     nodes.A1000,
     nodes.CeroMiligramos,
     nodes.CriemosLibres,
-    nodes.ElSueno,
     nodes.EnTeoria,
     nodes.EspacioSeguro,
-    nodes.Meli,
-    nodes.PausaActiva,
     nodes.Rufian,
-    nodes.Sobremesa,
-    nodes.Zeratype,
     nodes.Mascara,
     // Agrupamos Microfono y MicFiltro en un solo nodo visual
     nodes.Microfono && nodes.MicFiltro ? { microfono: nodes.Microfono, micfiltro: nodes.MicFiltro } : nodes.Microfono,
     // Agrupamos Camara y Lente en un solo nodo visual
     nodes.Camara && nodes.Lente ? { camara: nodes.Camara, lente: nodes.Lente } : nodes.Camara,
   ].filter(Boolean), [nodes]);
+
+  // Extract original positions from randomizable nodes
+  const originalPositions = useMemo(() => {
+    return randomizableNodes.map(node => {
+      if (node.microfono && node.micfiltro) {
+        return node.microfono.position;
+      } else if (node.camara && node.lente) {
+        return node.camara.position;
+      } else {
+        return node.position;
+      }
+    }).filter(pos => pos);
+  }, [randomizableNodes]);
+
+  // Shuffle positions randomly on mount
+  const shuffledPositions = useMemo(() => {
+    const positions = [...originalPositions];
+    // Fisher-Yates shuffle algorithm
+    for (let i = positions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [positions[i], positions[j]] = [positions[j], positions[i]];
+    }
+    return positions;
+  }, [originalPositions]);
+
+  // Create final mesh nodes array with randomized positions
+  const meshNodes = useMemo(() => {
+    const randomizedNodes = randomizableNodes.map((node, index) => {
+      const newPosition = shuffledPositions[index];
+      if (!newPosition) return node;
+
+      // Create a new node object with randomized position
+      if (node.microfono && node.micfiltro) {
+        return {
+          ...node,
+          microfono: { ...node.microfono, position: newPosition }
+        };
+      } else if (node.camara && node.lente) {
+        return {
+          ...node,
+          camara: { ...node.camara, position: newPosition }
+        };
+      } else {
+        return { ...node, position: newPosition };
+      }
+    });
+
+    // Add all fixed nodes at the end (never randomized)
+    return [...randomizedNodes, ...fixedNodes].filter(Boolean);
+  }, [randomizableNodes, shuffledPositions, nodes.Zeratype]);
 
   // Calculate bounding box for X and Y (excluding Zeratype, undefined y grupos)
   const meshNodesWithoutZeratype = useMemo(
@@ -73,18 +127,18 @@ export default function Model({mouse, viewport, cameraZoom}) {
   // Calculate responsive scaling based on viewport and camera zoom
   const responsiveScale = useMemo(() => {
     if (!viewport || !cameraZoom) return 1;
-    
+
     // Calculate the visible area in 3D space
     // With 10% margins, we want to use 80% of the viewport
     const marginFactor = 0.8;
-    
+
     // Base scale calculation - adjust based on camera zoom and viewport
     const baseScale = 200 / cameraZoom; // 200 is the camera distance
-    
+
     // Calculate scale based on viewport aspect ratio
     const aspectRatio = viewport.width / viewport.height;
     let scaleFactor;
-    
+
     if (aspectRatio > 1) {
       // Landscape - scale based on height
       scaleFactor = (viewport.height * marginFactor) / baseScale;
@@ -92,7 +146,7 @@ export default function Model({mouse, viewport, cameraZoom}) {
       // Portrait - scale based on width
       scaleFactor = (viewport.width * marginFactor) / baseScale;
     }
-    
+
     // Normalize to a reasonable range
     return Math.max(0.5, Math.min(scaleFactor / 100, 3));
   }, [viewport, cameraZoom]);
@@ -141,58 +195,58 @@ export default function Model({mouse, viewport, cameraZoom}) {
             floatProps={floatProps}
           />
         ) : // Si es el grupo Camara+Lente
-        node.camara && node.lente ? (
-          <GroupCamaraLente
-            key={"camara-lente"}
-            camara={node.camara}
-            lente={node.lente}
-            multiplier={1.5}
-            mouse={mouse}
-            isActive={activeShape === i + 1}
-            responsiveScale={responsiveScale}
-            viewport={viewport}
-            bounds={bounds}
-            availableArea={availableArea}
-            floatProps={floatProps}
-          />
-        ) : node === nodes.CeroMiligramos ? (
-          <Mesh
-            key={i}
-            node={node}
-            multiplier={1.5}
-            mouse={mouse}
-            isActive={activeShape === i + 1}
-            responsiveScale={responsiveScale}
-            viewport={viewport}
-            bounds={bounds}
-            availableArea={availableArea}
-            texture={ceroMiligramosTexture}
-            floatProps={floatProps}
-          />
-        ) : (
-          <Mesh
-            key={i}
-            node={node}
-            multiplier={
-              i === 0 || i === 1 ? 2.4 :
-              i === 2 ? 1.2 :
-              i === 3 ? 1 :
-              i === 4 || i === 5 ? 1.8 :
-              i === 6 ? 2 :
-              i === 7 ? 1.2 :
-              i === 8 ? 1.6 :
-              i === 9 ? 1.8 :
-              1.5
-            }
-            mouse={mouse}
-            isActive={activeShape === i + 1}
-            responsiveScale={responsiveScale}
-            viewport={viewport}
-            bounds={bounds}
-            availableArea={availableArea}
-            floatProps={floatProps}
-          />
-        )
+          node.camara && node.lente ? (
+            <GroupCamaraLente
+              key={"camara-lente"}
+              camara={node.camara}
+              lente={node.lente}
+              multiplier={1.5}
+              mouse={mouse}
+              isActive={activeShape === i + 1}
+              responsiveScale={responsiveScale}
+              viewport={viewport}
+              bounds={bounds}
+              availableArea={availableArea}
+              floatProps={floatProps}
+            />
+          ) : node === nodes.CeroMiligramos ? (
+            <Mesh
+              key={i}
+              node={node}
+              multiplier={1.5}
+              mouse={mouse}
+              isActive={activeShape === i + 1}
+              responsiveScale={responsiveScale}
+              viewport={viewport}
+              bounds={bounds}
+              availableArea={availableArea}
+              texture={ceroMiligramosTexture}
+              floatProps={floatProps}
+            />
+          ) : (
+            <Mesh
+              key={i}
+              node={node}
+              multiplier={
+                i === 0 || i === 1 ? 2.4 :
+                  i === 2 ? 1.2 :
+                    i === 3 ? 1 :
+                      i === 4 || i === 5 ? 1.8 :
+                        i === 6 ? 2 :
+                          i === 7 ? 1.2 :
+                            i === 8 ? 1.6 :
+                              i === 9 ? 1.8 :
+                                1.5
+              }
+              mouse={mouse}
+              isActive={activeShape === i + 1}
+              responsiveScale={responsiveScale}
+              viewport={viewport}
+              bounds={bounds}
+              availableArea={availableArea}
+              floatProps={floatProps}
+            />
+          )
       ))}
       {/* Render Zeratype logo at center */}
       {nodes.Zeratype && (
@@ -204,7 +258,7 @@ export default function Model({mouse, viewport, cameraZoom}) {
 
 useGLTF.preload("/medias/proyectos.glb");
 
-function Mesh({node, multiplier, mouse, isActive, responsiveScale, viewport, bounds, availableArea, texture, floatProps}) {
+function Mesh({ node, multiplier, mouse, isActive, responsiveScale, viewport, bounds, availableArea, texture, floatProps }) {
   const { geometry, material, position, scale, rotation } = node;
 
   // Remap X and Y to fill the available area with axis-specific margins
@@ -223,15 +277,15 @@ function Mesh({node, multiplier, mouse, isActive, responsiveScale, viewport, bou
     // Z stays as original (no remapping, no mouse movement)
     return { x, y, z: position.z };
   }, [position, viewport, responsiveScale, bounds, availableArea]);
-  
+
   const a = multiplier / 2;
-  const rotationX = useTransform(mouse.x, [0,1], [rotation.x - a, rotation.x + a]);
-  const rotationY = useTransform(mouse.y, [0,1], [rotation.y - a, rotation.y + a]);
-  
+  const rotationX = useTransform(mouse.x, [0, 1], [rotation.x - a, rotation.x + a]);
+  const rotationY = useTransform(mouse.y, [0, 1], [rotation.y - a, rotation.y + a]);
+
   // Responsive mouse movement based on viewport
   const responsiveMultiplier = multiplier * responsiveScale;
-  const positionX = useTransform(mouse.x, [0,1], [responsivePosition.x - responsiveMultiplier * 2, responsivePosition.x + responsiveMultiplier * 2]);
-  const positionY = useTransform(mouse.y, [0,1], [responsivePosition.y + responsiveMultiplier * 2, responsivePosition.y - responsiveMultiplier * 2]);
+  const positionX = useTransform(mouse.x, [0, 1], [responsivePosition.x - responsiveMultiplier * 2, responsivePosition.x + responsiveMultiplier * 2]);
+  const positionY = useTransform(mouse.y, [0, 1], [responsivePosition.y + responsiveMultiplier * 2, responsivePosition.y - responsiveMultiplier * 2]);
   // Z is fixed
   const positionZ = responsivePosition.z;
 
@@ -256,14 +310,14 @@ function Mesh({node, multiplier, mouse, isActive, responsiveScale, viewport, bou
         material={meshMaterial}
         position={[0, 0, 0]}
         rotation={rotation}
-        scale={scale}
+        scale={[scale.x * 1.25, scale.y * 1.25, scale.z * 1.25]}
         rotation-y={rotationX}
         rotation-x={rotationY}
         position-x={positionX}
         position-y={positionY}
         position-z={positionZ}
-        animate={{rotateZ: isActive ? rotation.z + getRandomMultiplier() : null}}
-        transition={{type: "spring", stiffness: 75, damping: 100, mass: 3}}
+        animate={{ rotateZ: isActive ? rotation.z + getRandomMultiplier() : null }}
+        transition={{ type: "spring", stiffness: 75, damping: 100, mass: 3 }}
       />
     </Float>
   )
@@ -278,7 +332,7 @@ function remap(val, inMin, inMax, outMin, outMax) {
 // ZeratypeLogo: reacts to mouse for rotation, fixed at [0,0,0], no Float
 function ZeratypeLogo({ node }) {
   const { geometry, material, scale, rotation } = node;
-  
+
   // Create completely black material from scratch, ignoring GLTF material
   const blackMaterial = useMemo(() => {
     return new MeshBasicMaterial({
@@ -288,10 +342,11 @@ function ZeratypeLogo({ node }) {
 
   // Detectar si es móvil (portrait)
   const [isMobile, setIsMobile] = useState(false);
-  
+
   useEffect(() => {
     function checkMobile() {
-      setIsMobile(window.innerHeight > window.innerWidth);
+      // Use consistent breakpoint: mobile if width < 768px
+      setIsMobile(window.innerWidth < 768);
     }
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -306,13 +361,13 @@ function ZeratypeLogo({ node }) {
   const responsiveScale = useMemo(() => {
     console.log('ZeratypeLogo - isMobile:', isMobile, 'original scale:', scale);
     if (isMobile) {
-      const mobileScale = [scale.x * 0.8, scale.y * 0.8, scale.z * 0.8];
+      const mobileScale = [scale.x * 0.7, scale.y * 0.7, scale.z * 0.7];
       console.log('ZeratypeLogo - mobile scale:', mobileScale);
       return mobileScale;
     }
     return scale; // Tamaño original en desktop
   }, [scale, isMobile]);
-  
+
   return (
     <mesh
       castShadow={true}
@@ -347,11 +402,11 @@ function GroupCamaraLente({ camara, lente, multiplier, mouse, isActive, responsi
   }, [position, viewport, responsiveScale, bounds, availableArea]);
 
   const a = multiplier / 2;
-  const rotationX = useTransform(mouse.x, [0,1], [rotation.x - a, rotation.x + a]);
-  const rotationY = useTransform(mouse.y, [0,1], [rotation.y - a, rotation.y + a]);
+  const rotationX = useTransform(mouse.x, [0, 1], [rotation.x - a, rotation.x + a]);
+  const rotationY = useTransform(mouse.y, [0, 1], [rotation.y - a, rotation.y + a]);
   const responsiveMultiplier = multiplier * responsiveScale;
-  const positionX = useTransform(mouse.x, [0,1], [responsivePosition.x - responsiveMultiplier * 2, responsivePosition.x + responsiveMultiplier * 2]);
-  const positionY = useTransform(mouse.y, [0,1], [responsivePosition.y + responsiveMultiplier * 2, responsivePosition.y - responsiveMultiplier * 2]);
+  const positionX = useTransform(mouse.x, [0, 1], [responsivePosition.x - responsiveMultiplier * 2, responsivePosition.x + responsiveMultiplier * 2]);
+  const positionY = useTransform(mouse.y, [0, 1], [responsivePosition.y + responsiveMultiplier * 2, responsivePosition.y - responsiveMultiplier * 2]);
   const positionZ = responsivePosition.z;
 
   const getRandomMultiplier = () => {
@@ -363,14 +418,14 @@ function GroupCamaraLente({ camara, lente, multiplier, mouse, isActive, responsi
       <motion.group
         position={[0, 0, 0]}
         rotation={rotation}
-        scale={scale}
+        scale={[scale.x * 1.25, scale.y * 1.25, scale.z * 1.25]}
         rotation-y={rotationX}
         rotation-x={rotationY}
         position-x={positionX}
         position-y={positionY}
         position-z={positionZ}
-        animate={{rotateZ: isActive ? rotation.z + getRandomMultiplier() : null}}
-        transition={{type: "spring", stiffness: 75, damping: 100, mass: 3}}
+        animate={{ rotateZ: isActive ? rotation.z + getRandomMultiplier() : null }}
+        transition={{ type: "spring", stiffness: 75, damping: 100, mass: 3 }}
       >
         <mesh
           castShadow={true}
@@ -416,11 +471,11 @@ function GroupMicrofonoMicFiltro({ microfono, micfiltro, multiplier, mouse, isAc
   }, [position, viewport, responsiveScale, bounds, availableArea]);
 
   const a = multiplier / 2;
-  const rotationX = useTransform(mouse.x, [0,1], [rotation.x - a, rotation.x + a]);
-  const rotationY = useTransform(mouse.y, [0,1], [rotation.y - a, rotation.y + a]);
+  const rotationX = useTransform(mouse.x, [0, 1], [rotation.x - a, rotation.x + a]);
+  const rotationY = useTransform(mouse.y, [0, 1], [rotation.y - a, rotation.y + a]);
   const responsiveMultiplier = multiplier * responsiveScale;
-  const positionX = useTransform(mouse.x, [0,1], [responsivePosition.x - responsiveMultiplier * 2, responsivePosition.x + responsiveMultiplier * 2]);
-  const positionY = useTransform(mouse.y, [0,1], [responsivePosition.y + responsiveMultiplier * 2, responsivePosition.y - responsiveMultiplier * 2]);
+  const positionX = useTransform(mouse.x, [0, 1], [responsivePosition.x - responsiveMultiplier * 2, responsivePosition.x + responsiveMultiplier * 2]);
+  const positionY = useTransform(mouse.y, [0, 1], [responsivePosition.y + responsiveMultiplier * 2, responsivePosition.y - responsiveMultiplier * 2]);
   const positionZ = responsivePosition.z;
 
   const getRandomMultiplier = () => {
@@ -432,14 +487,14 @@ function GroupMicrofonoMicFiltro({ microfono, micfiltro, multiplier, mouse, isAc
       <motion.group
         position={[0, 0, 0]}
         rotation={rotation}
-        scale={scale}
+        scale={[scale.x * 1.25, scale.y * 1.25, scale.z * 1.25]}
         rotation-y={rotationX}
         rotation-x={rotationY}
         position-x={positionX}
         position-y={positionY}
         position-z={positionZ}
-        animate={{rotateZ: isActive ? rotation.z + getRandomMultiplier() : null}}
-        transition={{type: "spring", stiffness: 75, damping: 100, mass: 3}}
+        animate={{ rotateZ: isActive ? rotation.z + getRandomMultiplier() : null }}
+        transition={{ type: "spring", stiffness: 75, damping: 100, mass: 3 }}
       >
         <mesh
           castShadow={true}

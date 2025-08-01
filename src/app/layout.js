@@ -1,5 +1,6 @@
 import './globals.css'
 import Navbar from '../components/Navbar'
+import LenisProvider from '../components/LenisProvider'
 
 export const metadata = {
   title: 'Create Next App',
@@ -13,13 +14,11 @@ export default function RootLayout({ children }) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
       </head>
       <body>
+        <LenisProvider />
         <Navbar />
         {children}
         <div className="background-elements">
           <img src="/medias/hechoEnZeratype.svg" alt="Hecho en Zeratype" className="hecho-en-zeratype" />
-          <p className="zeratype-quote">
-            En Zeratype <strong>conectamos</strong> marcas, creadores y audiencias para construir comunidades auténticas y conversaciones relevantes.
-          </p>
         </div>
       </body>
     </html>
